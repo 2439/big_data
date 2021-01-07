@@ -1,14 +1,14 @@
-from sklearn.metrics import mean_squared_error
 from sklearn.tree import DecisionTreeClassifier
 import numpy
 import pandas
+import sys
 # import matplotlib.pyplot as plt
 
 
 class Data:
-    def __init__(self):
+    def __init__(self, file):
         # 读取数据，获取表头
-        f = open("d_train.csv")
+        f = open(file)
         self.df = pandas.read_csv(f)
         cols = self.df.columns.values
         # print(cols)
@@ -78,12 +78,19 @@ class Model:
 
 
 if __name__ == '__main__':
+    # 读取数据位置
+    if len(sys.argv) == 2:
+        s = sys.argv[1]
+    else:
+        s = input("文件位置：")
+
     # 数据预处理
-    data = Data()
+    data = Data(s)
     data.data_pre()
 
     # 数据划分
-    df = numpy.array(data.df)
+    df = pandas.read_csv(open("d_train_pre.csv"))
+    df = numpy.array(df)
     df = df[:, 1:]    # id对结果无影响
     X = df[:, :df.shape[1]-1]
     y = df[:, df.shape[1]-1]
@@ -99,4 +106,8 @@ if __name__ == '__main__':
     pre_y = model.predict(X_test)
 
     # 分析结果
-    print(mean_squared_error(y_test, pre_y))
+    sum_result = 0
+    for i in range(len(y_test)):
+        sum_result += pow(pre_y[i]-y_test[i], 2)
+    sum_result /= (2 * len(y_test))
+    print(sum_result)
