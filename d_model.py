@@ -1,8 +1,10 @@
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LinearRegression
 import numpy
 import pandas
 import sys
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 
 class Data:
@@ -27,7 +29,7 @@ class Data:
         # print(self.df)
 
     def data_pre(self):
-        # print(self.df.describe())
+        # print(self.df.isnull().any())
         # 重复值删除
         self.df.duplicated()
 
@@ -68,13 +70,19 @@ class Data:
 
 class Model:
     def __init__(self):
-        self.dtc_model = DecisionTreeClassifier(criterion='entropy', max_depth=5)
+        # self.model = DecisionTreeClassifier(criterion='entropy', max_depth=5)
+        # self.model = LogisticRegression(penalty='l2', dual=False, tol=0.0001, C=1.0,
+        #                                 fit_intercept=True, intercept_scaling=1, class_weight=None,
+        #                                 random_state=None, solver='liblinear', max_iter=100, multi_class='ovr',
+        #                                 verbose=0, warm_start=False, n_jobs=1)
+        # self.model = LinearRegression(fit_intercept=True, normalize=False, copy_X=True, n_jobs=4)   # 1.0944
+        self.model = LinearRegression(fit_intercept=True, normalize=True, copy_X=True, n_jobs=4)   # 1.0936
 
     def train(self, train_x, train_y):
-        self.dtc_model.fit(train_x, train_y.astype('str'))
+        self.model.fit(train_x, train_y.astype('str'))
 
     def predict(self, test_x):
-        return self.dtc_model.predict(test_x).astype(float)
+        return self.model.predict(test_x).astype(float)
 
 
 if __name__ == '__main__':
@@ -83,6 +91,7 @@ if __name__ == '__main__':
         s = sys.argv[1]
     else:
         s = input("文件位置：")
+    # s = 'd_train.csv'
 
     # 数据预处理
     data = Data(s)
@@ -111,3 +120,9 @@ if __name__ == '__main__':
         sum_result += pow(pre_y[i]-y_test[i], 2)
     sum_result /= (2 * len(y_test))
     print(sum_result)
+
+    plt.figure(figsize=(10, 3))
+    plt.plot(y_test, label='y_test')
+    plt.plot(pre_y, label='pre_y')
+    plt.legend()
+    plt.show()

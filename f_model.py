@@ -1,6 +1,6 @@
 import numpy
 import pandas
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 from sklearn.tree import DecisionTreeClassifier
 import sys
 
@@ -27,7 +27,7 @@ class Data:
         # print(self.df)
 
     def data_pre(self):
-        # print(self.df.describe())
+        # print(self.df.isnull().any())
         # 重复值删除
         self.df.duplicated()
 
@@ -75,7 +75,8 @@ class Data:
 
 class Model:
     def __init__(self):
-        self.dtc_model = DecisionTreeClassifier(criterion='entropy', max_depth=5)
+        self.dtc_model = DecisionTreeClassifier(criterion='entropy', max_depth=15,
+                                                splitter='random', min_samples_leaf=1)
 
     def train(self, train_x, train_y):
         self.dtc_model.fit(train_x, train_y.astype('str'))
@@ -87,10 +88,11 @@ class Model:
 if __name__ == '__main__':
     # print(sys.argv[1])
     # 读取数据位置
-    if len(sys.argv) == 2:
-        s = sys.argv[1]
-    else:
-        s = input("文件位置：")
+    # if len(sys.argv) == 2:
+    #     s = sys.argv[1]
+    # else:
+    #     s = input("文件位置：")
+    s = 'f_train.csv'
 
     # 数据预处理
     data = Data(s)
@@ -99,7 +101,7 @@ if __name__ == '__main__':
     df = pandas.read_csv(open("f_train_pre.csv"))
     # 数据划分
     df = numpy.array(df)
-    df = df[:, 1:]  # id对结果无影响
+    df = df[:, :]
     X = df[:, :df.shape[1] - 1]
     y = df[:, df.shape[1] - 1]
 
@@ -112,6 +114,22 @@ if __name__ == '__main__':
     model = Model()
     model.train(X_train, y_train)
     pre_y = model.predict(X_test)
+    # for leaf in range(1, 20):
+    #     for depth in range(1, 20):
+    #         dtc = DecisionTreeClassifier(criterion='entropy', max_depth=depth, splitter='random', min_samples_leaf=leaf)
+    #         dtc.fit(X_train, y_train.astype('str'))
+    #         pre_y = dtc.predict(X_test).astype(float)
+    #
+    #         correct1 = 0
+    #         for i in range(len(y_test)):
+    #             if y_test[i] == 1 and y_test[i] == pre_y[i]:
+    #                 correct1 += 1
+    #         if pre_y.sum() == 0 or y_test.sum() == 0:
+    #             continue
+    #         correct_rate = correct1 / pre_y.sum()
+    #         recall_rate = correct1 / y_test.sum()
+    #         if (2 * correct_rate * recall_rate) / (correct_rate + recall_rate) > 0.79:
+    #             print('entropy', 'random', leaf, depth, (2 * correct_rate * recall_rate) / (correct_rate + recall_rate))
 
     # 分析结果
     correct1 = 0
@@ -121,3 +139,9 @@ if __name__ == '__main__':
     correct_rate = correct1 / pre_y.sum()
     recall_rate = correct1 / y_test.sum()
     print((2 * correct_rate * recall_rate) / (correct_rate + recall_rate))
+
+    plt.figure(figsize=(10, 3))
+    plt.plot(y_test, label='y_test')
+    plt.plot(pre_y, label='pre_y')
+    plt.legend()
+    plt.show()
