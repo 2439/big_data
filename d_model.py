@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 class Data:
     def __init__(self, file):
+        self.name = file
         # 读取数据，获取表头
         f = open(file)
         self.df = pandas.read_csv(f)
@@ -57,14 +58,16 @@ class Data:
         # print(self.df["体检日期"].sort_values())
 
         # 缺失值填充，除乙肝相关用0填充外，其余用平均值填充，归一化
-        for line in self.df.iloc[range(len(self.df)), range(4, 41)]:
+        for line in self.df.columns:
             if "乙肝" in line:
                 self.df[line] = self.df[line].fillna(0)
             else:
                 self.df[line] = self.df[line].fillna(self.df[line].mean())
             self.df[line] = (self.df[line] - self.df[line].min()) / (self.df[line].max() - self.df[line].min())
 
+    def to_csv(self):
         # 写入文件
+        self.name = self.name.split('.')[0] + '_pre.csv'
         self.df.to_csv("d_train_pre.csv", encoding="gbk", index=False)
 
 
@@ -94,24 +97,27 @@ if __name__ == '__main__':
     # s = 'd_train.csv'
 
     # 数据预处理
-    data = Data(s)
-    data.data_pre()
-
-    # 数据划分
-    df = pandas.read_csv(open("d_train_pre.csv"))
-    df = numpy.array(df)
-    df = df[:, 1:]    # id对结果无影响
-    X = df[:, :df.shape[1]-1]
-    y = df[:, df.shape[1]-1]
-
-    X_train = X[:5000]
-    y_train = y[:5000]
-    X_test = X[5000:]
-    y_test = y[5000:]
+    data_train = Data('d_train.csv')
+    data_train.data_pre()
+    data_train.to_csv()
 
     # 模型训练
+    df_train = data_train.df
+    y_train = numpy.array(df_train['血糖'])
+    del(df_train["血糖"])
+    X_train = numpy.array(df_train)
+
     model = Model()
     model.train(X_train, y_train)
+
+    # 模型训练
+    data_test = Data(s)
+    data_test.data_pre()
+    df_test = data_test.df
+    y_test = numpy.array(df_test['血糖'])
+    del(df_test["血糖"])
+    X_test = numpy.array(df_test)
+
     pre_y = model.predict(X_test)
 
     # 分析结果
@@ -121,8 +127,8 @@ if __name__ == '__main__':
     sum_result /= (2 * len(y_test))
     print(sum_result)
 
-    plt.figure(figsize=(10, 3))
-    plt.plot(y_test, label='y_test')
-    plt.plot(pre_y, label='pre_y')
-    plt.legend()
-    plt.show()
+    # plt.figure(figsize=(10, 3))
+    # plt.plot(y_test, label='y_test')
+    # plt.plot(pre_y, label='pre_y')
+    # plt.legend()
+    # plt.show()

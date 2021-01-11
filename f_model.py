@@ -7,6 +7,7 @@ import sys
 
 class Data:
     def __init__(self, file):
+        self.name = file
         # 读取数据，获取表头
         f = open(file)
         self.df = pandas.read_csv(f)
@@ -41,18 +42,17 @@ class Data:
             if "SNP" in line or line in ["孕次", "产次", "DM家族史", "ACEID"]:
                 self.df[line] = self.df[line].fillna(0).astype(int)
                 # print(self.df[line].value_counts())
+            if line in ["RBP4"]:
+                self.df["RBP4"] = self.df["RBP4"].fillna(0)
             # 年龄身高等用平均数填充
             if line in ["年龄", "收缩压", "舒张压", "ALT", "AST"]:
                 self.df[line] = self.df[line].fillna(self.df[line].mean()).astype(int)
-            if line in ["孕前BMI", "分娩时", "糖筛孕周", "VAR00007", "wbc"]\
-                    or line in self.df.columns[37:47]:
-                self.df[line] = self.df[line].fillna(self.df[line].mean())
             # BMI分类用众数填充
             if line == "BMI分类":
                 self.df[line] = self.df[line].fillna(self.df[line].mode()[0]).astype(int)
-
-        # RBP40填充
-        self.df["RBP4"] = self.df["RBP4"].fillna(0)
+            # 其余用平均数填充
+            else:
+                self.df[line] = self.df[line].fillna(self.df[line].mean())
 
         # 年龄数据离散化，根据数据和折线图，最小17，最大48，分箱
         self.df["年龄"] = self.df["年龄"].astype(int)
@@ -69,8 +69,10 @@ class Data:
                     or line in self.df.columns[37:47]:
                 self.df[line] = (self.df[line] - self.df[line].min()) / (self.df[line].max() - self.df[line].min())
 
+    def to_csv(self):
         # 写入文件
-        self.df.to_csv("f_train_pre.csv", encoding="gbk", index=False)
+        self.name = self.name.split('.')[0] + '_pre.csv'
+        self.df.to_csv(self.name, encoding="gbk", index=False)
 
 
 class Model:
@@ -86,37 +88,38 @@ class Model:
 
 
 if __name__ == '__main__':
-    # print(sys.argv[1])
-    # 读取数据位置
-    # if len(sys.argv) == 2:
-    #     s = sys.argv[1]
-    # else:
-    #     s = input("文件位置：")
-    s = 'f_train.csv'
+    # 读取测试数据位置
+    if len(sys.argv) == 2:
+        s = sys.argv[1]
+    else:
+        s = input("文件位置：")
 
     # 数据预处理
-    data = Data(s)
-    data.data_pre()
-
-    df = pandas.read_csv(open("f_train_pre.csv"))
-    # 数据划分
-    df = numpy.array(df)
-    df = df[:, :]
-    X = df[:, :df.shape[1] - 1]
-    y = df[:, df.shape[1] - 1]
-
-    X_train = X[:700]
-    y_train = y[:700]
-    X_test = X[300:]
-    y_test = y[300:]
+    data_train = Data('f_train.csv')
+    data_train.data_pre()
+    # data_train.to_csv()
 
     # 模型训练
+    df_train = data_train.df
+    y_train = numpy.array(df_train['label'])
+    del(df_train["label"])
+    X_train = numpy.array(df_train)
     model = Model()
     model.train(X_train, y_train)
+
+    # 模型测试
+    data_test = Data(s)
+    data_test.data_pre()
+    df_test = data_test.df
+    y_test = numpy.array(df_test['label'])
+    del(df_test["label"])
+    X_test = numpy.array(df_test)
+
     pre_y = model.predict(X_test)
     # for leaf in range(1, 20):
     #     for depth in range(1, 20):
-    #         dtc = DecisionTreeClassifier(criterion='entropy', max_depth=depth, splitter='random', min_samples_leaf=leaf)
+    #         dtc = DecisionTreeClassifier(criterion='entropy', max_depth=depth,
+    #         splitter='random', min_samples_leaf=leaf)
     #         dtc.fit(X_train, y_train.astype('str'))
     #         pre_y = dtc.predict(X_test).astype(float)
     #
@@ -129,7 +132,8 @@ if __name__ == '__main__':
     #         correct_rate = correct1 / pre_y.sum()
     #         recall_rate = correct1 / y_test.sum()
     #         if (2 * correct_rate * recall_rate) / (correct_rate + recall_rate) > 0.79:
-    #             print('entropy', 'random', leaf, depth, (2 * correct_rate * recall_rate) / (correct_rate + recall_rate))
+    #             print('entropy', 'random', leaf, depth,
+    #             (2 * correct_rate * recall_rate) / (correct_rate + recall_rate))
 
     # 分析结果
     correct1 = 0
@@ -140,8 +144,8 @@ if __name__ == '__main__':
     recall_rate = correct1 / y_test.sum()
     print((2 * correct_rate * recall_rate) / (correct_rate + recall_rate))
 
-    plt.figure(figsize=(10, 3))
-    plt.plot(y_test, label='y_test')
-    plt.plot(pre_y, label='pre_y')
-    plt.legend()
-    plt.show()
+    # plt.figure(figsize=(10, 3))
+    # plt.plot(y_test, label='y_test')
+    # plt.plot(pre_y, label='pre_y')
+    # plt.legend()
+    # plt.show()
